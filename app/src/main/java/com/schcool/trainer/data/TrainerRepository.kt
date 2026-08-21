@@ -22,7 +22,8 @@ class TrainerRepository @Inject constructor(
         if (scenarioDao.count() == 0) scenarioDao.insertAll(SeedData.scenarios)
     }
 
-    suspend fun nextClientQuestion(context: String): String = llmService.generateQuestion(context)
+    suspend fun nextQuestion(context: String, askedQuestions: List<String>, fromRole: Role): String =
+        llmService.generateQuestion(context, askedQuestions, fromRole)
 
     suspend fun helperTip(context: String): String = llmService.generateHelperTip(context)
 
