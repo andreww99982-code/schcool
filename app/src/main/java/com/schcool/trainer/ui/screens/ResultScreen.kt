@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.schcool.trainer.domain.Competency
 
 @Composable
 fun ResultScreen(
@@ -35,10 +36,10 @@ fun ResultScreen(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("Итоговые баллы: ${state.scoreBoard.finalScore}")
-                Text("Выявление потребностей: ${state.scoreBoard.competencyPoints.values.elementAtOrElse(0) { 0 }}")
-                Text("Презентация: ${state.scoreBoard.competencyPoints.values.elementAtOrElse(1) { 0 }}")
-                Text("Возражения: ${state.scoreBoard.competencyPoints.values.elementAtOrElse(2) { 0 }}")
-                Text("Закрытие сделки: ${state.scoreBoard.competencyPoints.values.elementAtOrElse(3) { 0 }}")
+                Text("Выявление потребностей: ${state.scoreBoard.competencyPoints[Competency.NEEDS_DISCOVERY] ?: 0}")
+                Text("Презентация: ${state.scoreBoard.competencyPoints[Competency.PRODUCT_PRESENTATION] ?: 0}")
+                Text("Возражения: ${state.scoreBoard.competencyPoints[Competency.OBJECTION_HANDLING] ?: 0}")
+                Text("Закрытие сделки: ${state.scoreBoard.competencyPoints[Competency.CLOSING] ?: 0}")
             }
         }
 

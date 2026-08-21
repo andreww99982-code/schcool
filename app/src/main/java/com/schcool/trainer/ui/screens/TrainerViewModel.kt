@@ -89,22 +89,21 @@ class TrainerViewModel @Inject constructor(
     }
 
     fun submitAnswer(answer: String) {
-        if (answer.isBlank() || uiState.round > uiState.maxRounds) return
-
-        val feedback = repository.evaluate(answer)
-        val updatedMap = uiState.scoreBoard.competencyPoints.toMutableMap()
-        updatedMap[feedback.competency] = (updatedMap[feedback.competency] ?: 0) + feedback.deltaPoints
-
-        val updatedScore = uiState.scoreBoard.copy(
-            points = uiState.scoreBoard.points + feedback.deltaPoints.coerceAtLeast(0),
-            penalties = uiState.scoreBoard.penalties + (-feedback.deltaPoints).coerceAtLeast(0),
-            competencyPoints = updatedMap,
-            criticalFailure = uiState.scoreBoard.criticalFailure || feedback.criticalFailure
-        )
-
-        val sellerMsg = ChatMessage(UUID.randomUUID().toString(), false, answer)
-
         viewModelScope.launch {
+            if (answer.isBlank() || uiState.round > uiState.maxRounds) return@launch
+
+            val feedback = repository.evaluate(answer)
+            val updatedMap = uiState.scoreBoard.competencyPoints.toMutableMap()
+            updatedMap[feedback.competency] = (updatedMap[feedback.competency] ?: 0) + feedback.deltaPoints
+
+            val updatedScore = uiState.scoreBoard.copy(
+                points = uiState.scoreBoard.points + feedback.deltaPoints.coerceAtLeast(0),
+                penalties = uiState.scoreBoard.penalties + (-feedback.deltaPoints).coerceAtLeast(0),
+                competencyPoints = updatedMap,
+                criticalFailure = uiState.scoreBoard.criticalFailure || feedback.criticalFailure
+            )
+            val sellerMsg = ChatMessage(UUID.randomUUID().toString(), false, answer)
+
             val nextQuestion = if (uiState.round < uiState.maxRounds) {
                 repository.nextClientQuestion(answer)
             } else {

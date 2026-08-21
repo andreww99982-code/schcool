@@ -2,7 +2,6 @@ package com.schcool.trainer.data
 
 import com.schcool.trainer.domain.Competency
 import com.schcool.trainer.domain.RubricFeedback
-import kotlin.random.Random
 
 interface LlmService {
     suspend fun generateQuestion(context: String): String
@@ -51,6 +50,6 @@ class RubricScorer {
         if (picks.isEmpty()) {
             return RubricFeedback(-8, Competency.PRODUCT_PRESENTATION, "Недостаточно структуры: добавьте аргументы и уточнения.")
         }
-        return picks[Random.nextInt(picks.size)]
+        return picks.maxBy { it.deltaPoints }
     }
 }
