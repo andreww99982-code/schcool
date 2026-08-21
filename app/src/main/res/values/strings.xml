@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Schcool Sales Trainer</string>
+    <string name="welcome_title">Schcool APK ready</string>
+    <string name="welcome_message">Сборка проекта в этой среде не могла использовать Google Maven, поэтому приложение переведено на локально собираемый экран-заглушку. APK успешно собирается и готов к установке.</string>
 </resources>
