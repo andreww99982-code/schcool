@@ -1,25 +1,11 @@
 package com.schcool.trainer
 
+import android.app.Activity
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Surface
-import com.schcool.trainer.ui.navigation.AppNavHost
-import com.schcool.trainer.ui.theme.SchcoolTheme
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            SchcoolTheme {
-                Surface {
-                    AppNavHost()
-                }
-            }
-        }
+        setContentView(R.layout.activity_main)
     }
 }
