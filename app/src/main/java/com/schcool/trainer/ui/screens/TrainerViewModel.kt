@@ -13,6 +13,7 @@ import com.schcool.trainer.domain.Competency
 import com.schcool.trainer.domain.Difficulty
 import com.schcool.trainer.domain.Role
 import com.schcool.trainer.domain.ScoreBoard
+import com.schcool.trainer.domain.RubricFeedback
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -32,7 +33,8 @@ data class TrainerUiState(
     val scoreBoard: ScoreBoard = ScoreBoard(),
     val feedbackLog: List<String> = emptyList(),
     val round: Int = 0,
-    val maxRounds: Int = 8,
+    val maxRounds: Int = 12,
+    val askedQuestions: List<String> = emptyList(),
     val loading: Boolean = true
 )
 
@@ -69,14 +71,21 @@ class TrainerViewModel @Inject constructor(
 
     fun startSimulation() {
         val scenario = selectedScenario() ?: return
-        val opener = "Клиент (${scenario.customerType}): Добрый день. Подберите телефон и объясните, почему он мне подходит."
+        val role = uiState.role ?: return
+        val opener = if (role == Role.SELLER) {
+            "Добрый день. Подберите телефон и объясните, почему он мне подходит."
+        } else {
+            "Добрый день! Расскажите, для каких задач вам нужен смартфон и какой бюджет комфортный?"
+        }
+        val opponentIsClient = role == Role.SELLER
         uiState = uiState.copy(
-            chat = listOf(ChatMessage(UUID.randomUUID().toString(), true, opener)),
+            chat = listOf(ChatMessage(UUID.randomUUID().toString(), opponentIsClient, opener)),
             currentQuestion = opener,
             helperTip = "",
             feedbackLog = emptyList(),
             scoreBoard = ScoreBoard(),
-            round = 1
+            round = 1,
+            askedQuestions = listOf(opener)
         )
     }
 
@@ -102,20 +111,37 @@ class TrainerViewModel @Inject constructor(
                 competencyPoints = updatedMap,
                 criticalFailure = uiState.scoreBoard.criticalFailure || feedback.criticalFailure
             )
-            val sellerMsg = ChatMessage(UUID.randomUUID().toString(), false, answer)
+            val role = uiState.role ?: return@launch
+            val userIsClient = role == Role.BUYER
+            val userMsg = ChatMessage(UUID.randomUUID().toString(), userIsClient, answer)
+            val analysis = buildOpponentAnalysis(role, feedback)
+            val analysisMsg = ChatMessage(
+                UUID.randomUUID().toString(),
+                isClient = !userIsClient,
+                text = analysis
+            )
 
             val nextQuestion = if (uiState.round < uiState.maxRounds) {
-                repository.nextClientQuestion(answer)
+                repository.nextQuestion(
+                    context = answer,
+                    askedQuestions = uiState.askedQuestions,
+                    fromRole = if (role == Role.SELLER) Role.BUYER else Role.SELLER
+                )
             } else {
                 "Спасибо, я подумаю. Подведите итог по предложению."
             }
-            val clientMsg = ChatMessage(UUID.randomUUID().toString(), true, nextQuestion)
+            val clientMsg = ChatMessage(
+                UUID.randomUUID().toString(),
+                isClient = !userIsClient,
+                text = nextQuestion
+            )
             uiState = uiState.copy(
                 scoreBoard = updatedScore,
-                chat = uiState.chat + sellerMsg + clientMsg,
+                chat = uiState.chat + userMsg + analysisMsg + clientMsg,
                 feedbackLog = uiState.feedbackLog + feedback.explanation,
                 currentQuestion = nextQuestion,
-                round = uiState.round + 1
+                round = uiState.round + 1,
+                askedQuestions = uiState.askedQuestions + nextQuestion
             )
         }
     }
@@ -145,8 +171,20 @@ class TrainerViewModel @Inject constructor(
             feedbackLog = emptyList(),
             scoreBoard = ScoreBoard(),
             currentQuestion = "",
-            round = 0
+            round = 0,
+            askedQuestions = emptyList()
         )
+    }
+
+    private fun buildOpponentAnalysis(role: Role, feedback: RubricFeedback): String {
+        val mood = when {
+            feedback.criticalFailure -> "Это звучит слабо и вызывает недоверие."
+            feedback.deltaPoints >= 18 -> "Ответ логичный и убедительный."
+            feedback.deltaPoints >= 10 -> "Ответ в целом понятный, но можно усилить аргументацию."
+            else -> "Логики пока не хватает, поясните выбор и выгоду яснее."
+        }
+        val who = if (role == Role.SELLER) "Как клиент отмечу" else "Как продавец отмечу"
+        return "$who: $mood\n${feedback.explanation}"
     }
 
     private fun selectedScenario(): ScenarioEntity? = uiState.scenarios.firstOrNull { it.id == uiState.selectedScenarioId }

@@ -1,16 +1,23 @@
 package com.schcool.trainer.data
 
 import com.schcool.trainer.domain.Competency
+import com.schcool.trainer.domain.Role
 import com.schcool.trainer.domain.RubricFeedback
 
 interface LlmService {
-    suspend fun generateQuestion(context: String): String
+    suspend fun generateQuestion(context: String, askedQuestions: List<String>, fromRole: Role): String
     suspend fun generateHelperTip(context: String): String
 }
 
 class TemplateLlmService : LlmService {
-    override suspend fun generateQuestion(context: String): String {
-        return SeedData.annoyingQuestionTemplates.random()
+    override suspend fun generateQuestion(context: String, askedQuestions: List<String>, fromRole: Role): String {
+        val source = if (fromRole == Role.BUYER) {
+            SeedData.annoyingQuestionTemplates
+        } else {
+            SeedData.sellerQuestionTemplates
+        }
+        val remaining = source.filterNot { it in askedQuestions }
+        return (if (remaining.isNotEmpty()) remaining else source).random()
     }
 
     override suspend fun generateHelperTip(context: String): String {
@@ -123,12 +130,7 @@ class RubricScorer {
         }
 
         if (picks.isEmpty()) {
-            // Partial credit for long thoughtful answers
-            return if (text.length > 60) {
-                RubricFeedback(-4, Competency.PRODUCT_PRESENTATION, "⚠️ Ответ развёрнутый, но без чётких аргументов или вопросов.")
-            } else {
-                RubricFeedback(-8, Competency.PRODUCT_PRESENTATION, "❌ Слабый ответ: нет структуры, аргументов и уточняющих вопросов.")
-            }
+            return RubricFeedback(-8, Competency.PRODUCT_PRESENTATION, "❌ Слабый ответ: нет структуры, аргументов и уточняющих вопросов.")
         }
         return picks.maxBy { it.deltaPoints }
     }
